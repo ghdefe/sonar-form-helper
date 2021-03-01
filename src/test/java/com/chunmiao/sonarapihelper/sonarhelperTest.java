@@ -15,9 +15,9 @@ public class sonarhelperTest {
     @Test
     public void test(){
 //        final String allProject = sonarApiService.getAllProjectIssues();
-        sonarApiService.getProjectIssuesCount();
+        sonarApiService.getProjectIssues();
         sonarApiService.getAllProjectIssues();
-        sonarApiService.getAllCompanyAllProjectIssues();
+        sonarApiService.getProjectIssues();
         sonarApiService.getAllCompanyProjectIssues();
     }
 

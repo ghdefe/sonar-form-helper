@@ -1,4 +1,4 @@
-package com.chunmiao.sonarapihelper.service;
+package com.chunmiao.sonarapihelper.service.finalEnum;
 
 public enum ISSUETYPE {
     BUG("BUG");
