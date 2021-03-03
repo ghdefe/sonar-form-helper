@@ -20,7 +20,7 @@ public class SonarApiController {
 
     @GetMapping("/allProjectIssues")
     public String getAllProjectIssues(){
-        sonarApiService.getAllProjectIssues();
+//        sonarApiService.getAllProjectIssues();
         return null;
     }
 

@@ -5,14 +5,17 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.chunmiao.sonarapihelper.service.finalEnum.ISSUETYPE;
 import com.opencsv.CSVWriter;
+import okhttp3.Call;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
+import java.net.http.HttpHeaders;
 import java.nio.charset.Charset;
 import java.util.*;
 
@@ -20,8 +23,11 @@ import java.util.*;
 @Service
 public class SonarApiService {
 
+    public static final String SONAR_TOKEN = "Basic YzM5MzgxNGIyMjRlYzFkNGU5ZDAzMTdjYjNkMGFlODg0NzljZDgzMzo=";
     final RestTemplate restTemplate = new RestTemplate();
     private final Logger log = LoggerFactory.getLogger(SonarApiService.class);
+
+    private OkHttpClient okHttpClient = new OkHttpClient();
 
     private final String resultDir = System.getProperty("user.dir") + "/result/";
 
@@ -36,7 +42,31 @@ public class SonarApiService {
             "pmd:OverrideBothEqualsAndHashcode"
     };
 
-    private final HashSet<String> codeSet = new HashSet<>(Arrays.asList(codes));
+    public final HashSet<String> CODESET = new HashSet<>(Arrays.asList(codes));
+
+
+    public void generatePropertiesFile(File fatherPath, File propertiesTemplate){
+        int i = 0;
+        final File[] dirs = fatherPath.listFiles();
+        for (File dir : dirs) {
+            for (File dirProject : Objects.requireNonNull(dir.listFiles())) {
+                System.out.println("当前执行第" + (++i) + "个目录\n执行目录: " + dirProject.getName());
+                final File propertiesFile = new File(dirProject, "sonar-project.properties");
+                if (propertiesFile.exists()) {
+                    propertiesFile.delete();
+                }
+                // 修改模板
+                replaceAndCopyString(
+                        propertiesTemplate
+                        , propertiesFile
+                        , "\\$\\{myProjectName\\}"
+                        , dir.getName() + "-" + dirProject.getName()
+                );
+//                excuteCMDCommand("cmd.exe /k D:\\sonar\\sonar-scanner-4.6.0.2311-windows\\bin\\sonar-scanner.bat", dirProject);
+            }
+        }
+
+    }
 
 
     /**
@@ -54,7 +84,7 @@ public class SonarApiService {
     public void getAllProjectIssuesResult(HashSet<String> codeSet) {
         final List<String> urls = getAllUrl("D:\\scanner");
         final List<Map.Entry<String, Integer>> result = getResult(urls,codeSet);
-        writeResultToCSV(result, new File(resultDir, "result.csv"),"","");
+        writeResultToCSV(result, new File(resultDir, "result-in-codes.csv"),"","");
     }
 
     /**
@@ -105,13 +135,13 @@ public class SonarApiService {
     public void getCompanyIssues(File company) {
         final List<String> urls = getCompanyUrl(company);
         final List<Map.Entry<String, Integer>> result = getResult(urls);
-        writeResultToCSV(result, new File(resultDir, "ProjectCountNoCodes.csv"),company.getName(),"");
+        writeResultToCSV(result, new File(resultDir, "Company.csv"),company.getName(),"");
     }
 
     public void getCompanyIssues(File company, HashSet<String> bugCodeSet) {
         final List<String> urls = getCompanyUrl(company);
         final List<Map.Entry<String, Integer>> result = getResult(urls,bugCodeSet);
-        writeResultToCSV(result, new File(resultDir, "ProjectCountNoCodes.csv"),company.getName(),"");
+        writeResultToCSV(result, new File(resultDir, "Company-in-codes.csv"),company.getName(),"");
     }
 
     public void getProjectIssues(File project) {
@@ -119,7 +149,7 @@ public class SonarApiService {
         HashMap<String, Integer> resHashMap = new HashMap<>();
         fromUrlGetResult(url, resHashMap);
         final List<Map.Entry<String, Integer>> result = sortHashMap(resHashMap);
-        writeResultToCSV(result, new File(resultDir, "ProjectCountNoCodes.csv"),project.getParentFile().getName(),project.getName());
+        writeResultToCSV(result, new File(resultDir, "Project.csv"),project.getParentFile().getName(),project.getName());
     }
 
     public void getProjectIssues(File project, HashSet<String> bugCodeSet) {
@@ -127,7 +157,7 @@ public class SonarApiService {
         HashMap<String, Integer> resHashMap = new HashMap<>();
         fromUrlGetResult(url, resHashMap, bugCodeSet);
         final List<Map.Entry<String, Integer>> result = sortHashMap(resHashMap);
-        writeResultToCSV(result, new File(resultDir, "ProjectCountNoCodes.csv"),project.getParentFile().getName(),project.getName());
+        writeResultToCSV(result, new File(resultDir, "Project-in-codes.csv"),project.getParentFile().getName(),project.getName());
     }
 
     private void writeResultToCSV(List<Map.Entry<String, Integer>> result, File csvFile, String company, String project) {
@@ -231,40 +261,64 @@ public class SonarApiService {
 
 
     private void fromUrlGetResult(String url, HashMap<String, Integer> resultHashMap) {
-        String resp = restTemplate.getForObject(url, String.class);
-        JSONObject jsonObject = JSON.parseObject(resp);
-        JSONArray issues = jsonObject.getJSONArray("issues");
-        Iterator<Object> iterator = issues.iterator();
-        while (iterator.hasNext()) {
-            final JSONObject next = (JSONObject) iterator.next();
-            final String message = next.getString("rule");
-            if (resultHashMap.containsKey(message)) {
-                resultHashMap.replace(message, resultHashMap.get(message) + 1);
-            } else {
-                resultHashMap.put(message, 1);
+        Request request = new Request.Builder()
+                .header("Authorization", SONAR_TOKEN)
+                .url(url)
+                .get()
+                .build();
+        Call call = okHttpClient.newCall(request);
+        try (Response execute = call.execute();){
+            String resp = execute.body().string();
+            JSONObject jsonObject = JSON.parseObject(resp);
+            JSONArray issues = jsonObject.getJSONArray("issues");
+            Iterator<Object> iterator = issues.iterator();
+            while (iterator.hasNext()) {
+                final JSONObject next = (JSONObject) iterator.next();
+                final String message = next.getString("rule");
+                if (resultHashMap.containsKey(message)) {
+                    resultHashMap.replace(message, resultHashMap.get(message) + 1);
+                } else {
+                    resultHashMap.put(message, 1);
+                }
             }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            log.error(e.getMessage());
         }
     }
 
     private void fromUrlGetResult(String url, HashMap<String, Integer> resultHashMap, HashSet<String> codeSet) {
-        String resp = restTemplate.getForObject(url, String.class);
-        JSONObject jsonObject = JSON.parseObject(resp);
-        JSONArray issues = jsonObject.getJSONArray("issues");
-        Iterator<Object> iterator = issues.iterator();
-        while (iterator.hasNext()) {
-            final JSONObject next = (JSONObject) iterator.next();
-            final String message = next.getString("rule");
-            log.info(message);
-            if (!codeSet.contains(message)) {
-                log.info("跳过" + message);
-                continue;
+        Request request = new Request.Builder()
+                .header("Authorization", SONAR_TOKEN)
+                .url(url)
+                .get()
+                .build();
+        Call call = okHttpClient.newCall(request);
+        try (Response response = call.execute()){
+            String resp = response.body().string();
+            JSONObject jsonObject = JSON.parseObject(resp);
+            JSONArray issues = jsonObject.getJSONArray("issues");
+            for (Object issue : issues) {
+                final JSONObject next = (JSONObject) issue;
+                final String message = next.getString("rule");
+                log.info(message);
+                if (!codeSet.contains(message)) {
+                    log.info("跳过" + message);
+                    continue;
+                }
+                if (resultHashMap.containsKey(message)) {
+                    resultHashMap.replace(message, resultHashMap.get(message) + 1);
+                } else {
+                    resultHashMap.put(message, 1);
+                }
             }
-            if (resultHashMap.containsKey(message)) {
-                resultHashMap.replace(message, resultHashMap.get(message) + 1);
-            } else {
-                resultHashMap.put(message, 1);
-            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            log.error(e.getMessage());
         }
+
     }
 
     private List<Map.Entry<String, Integer>> sortHashMap(HashMap<String, Integer> hashMap) {
@@ -287,5 +341,22 @@ public class SonarApiService {
             resHashMap.put(key, name);
         }
         return resHashMap;
+    }
+
+    private void replaceAndCopyString(File template, File file, String source, String target) {
+        String temp;
+        try (
+                final FileReader fileReader = new FileReader(template);
+                BufferedReader br = new BufferedReader(fileReader);
+                final FileWriter fileWriter = new FileWriter(file);
+        ) {
+            while ((temp = br.readLine()) != null) {
+                temp = temp.replaceAll(source, target);
+                fileWriter.write(temp);
+                fileWriter.append(System.getProperty("line.separator"));
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
