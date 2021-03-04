@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.chunmiao.sonarapihelper.service.finalEnum.ISSUETYPE;
 import com.opencsv.CSVWriter;
+import com.sun.source.util.Trees;
 import okhttp3.Call;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -39,7 +40,6 @@ public class SonarApiService {
     private final String resultDir = System.getProperty("user.dir") + "/result/";
 
 
-
     public void generatePropertiesFile(File fatherPath, File propertiesTemplate) {
         int i = 0;
         final File[] dirs = fatherPath.listFiles();
@@ -69,7 +69,7 @@ public class SonarApiService {
      */
     public void getAllProjectIssuesResult() {
         final List<String> urls = getAllUrl(scannerDir);
-        final List<Map.Entry<String, Integer>> result = getResult(urls);
+        final HashMap<String, Integer> result = getResult(urls);
         writeResultToCSV(result, new File(resultDir, "result.csv"), "", "");
     }
 
@@ -78,7 +78,7 @@ public class SonarApiService {
      */
     public void getAllProjectIssuesResult(HashSet<String> codeSet) {
         final List<String> urls = getAllUrl(scannerDir);
-        final List<Map.Entry<String, Integer>> result = getResult(urls, codeSet);
+        final HashMap<String, Integer> result = getResult(urls, codeSet);
         writeResultToCSV(result, new File(resultDir, "result-in-codes.csv"), "", "");
     }
 
@@ -129,13 +129,13 @@ public class SonarApiService {
 
     public void getCompanyIssues(File company) {
         final List<String> urls = getCompanyUrl(company);
-        final List<Map.Entry<String, Integer>> result = getResult(urls);
+        final HashMap<String,Integer> result = getResult(urls);
         writeResultToCSV(result, new File(resultDir, "Company.csv"), company.getName(), "");
     }
 
     public void getCompanyIssues(File company, HashSet<String> bugCodeSet) {
         final List<String> urls = getCompanyUrl(company);
-        final List<Map.Entry<String, Integer>> result = getResult(urls, bugCodeSet);
+        final HashMap<String,Integer> result = getResult(urls, bugCodeSet);
         writeResultToCSV(result, new File(resultDir, "Company-in-codes.csv"), company.getName(), "");
     }
 
@@ -143,19 +143,17 @@ public class SonarApiService {
         final String url = getProjectIssuesUrl(project);
         HashMap<String, Integer> resHashMap = new HashMap<>();
         fromUrlGetResult(url, resHashMap);
-        final List<Map.Entry<String, Integer>> result = sortHashMap(resHashMap);
-        writeResultToCSV(result, new File(resultDir, "Project.csv"), project.getParentFile().getName(), project.getName());
+        writeResultToCSV(resHashMap, new File(resultDir, "Project.csv"), project.getParentFile().getName(), project.getName());
     }
 
     public void getProjectIssues(File project, HashSet<String> bugCodeSet) {
         final String url = getProjectIssuesUrl(project);
         HashMap<String, Integer> resHashMap = new HashMap<>();
         fromUrlGetResult(url, resHashMap, bugCodeSet);
-        final List<Map.Entry<String, Integer>> result = sortHashMap(resHashMap);
-        writeResultToCSV(result, new File(resultDir, "Project-in-codes.csv"), project.getParentFile().getName(), project.getName());
+        writeResultToCSV(resHashMap, new File(resultDir, "Project-in-codes.csv"), project.getParentFile().getName(), project.getName());
     }
 
-    private void writeResultToCSV(List<Map.Entry<String, Integer>> result, File csvFile, String company, String project) {
+    private void writeResultToCSV(HashMap<String,Integer> result, File csvFile, String company, String project) {
         final HashMap<String, String> codeOfIssue = getCodeOfIssue();
         if (!csvFile.getParentFile().exists()) {
             csvFile.getParentFile().mkdirs();
@@ -167,11 +165,11 @@ public class SonarApiService {
             if (!csvFile.exists()) {
                 csvWriter.writeNext(new String[]{"公司", "项目", "BUG代码", "描述", "次数"});
             }
-            for (Map.Entry<String, Integer> entry : result) {
-                final String key = entry.getKey();
-                final Integer value = entry.getValue();
-                final String describe = codeOfIssue.get(key);
-                csvWriter.writeNext(new String[]{company, project, key, describe, value.toString()});
+            TreeSet<String> codes = sonarProperties.getCodes();
+            for (String code : codes) {
+                Integer count = result.get(code) == null ? 0 : result.get(code);
+                String describe = codeOfIssue.get(code);
+                csvWriter.writeNext(new String[]{company, project, code, describe, count.toString()});
             }
 
         } catch (IOException e) {
@@ -187,12 +185,12 @@ public class SonarApiService {
      * @param urls
      * @return Map<bug代码, 次数>
      */
-    private List<Map.Entry<String, Integer>> getResult(List<String> urls) {
+    private HashMap<String, Integer> getResult(List<String> urls) {
         HashMap<String, Integer> resHashMap = new HashMap<>();
         for (String url : urls) {
             fromUrlGetResult(url, resHashMap);
         }
-        return sortHashMap(resHashMap);
+        return resHashMap;
     }
 
     /**
@@ -202,12 +200,12 @@ public class SonarApiService {
      * @param bugCodes
      * @return Map<bug代码, 次数>
      */
-    private List<Map.Entry<String, Integer>> getResult(List<String> urls, HashSet<String> bugCodes) {
+    private HashMap<String,Integer> getResult(List<String> urls, HashSet<String> bugCodes) {
         HashMap<String, Integer> resHashMap = new HashMap<>();
         for (String url : urls) {
             fromUrlGetResult(url, resHashMap, bugCodes);
         }
-        return sortHashMap(resHashMap);
+        return resHashMap;
     }
 
     /**

@@ -3,6 +3,10 @@ package com.chunmiao.sonarapihelper.service;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.TreeSet;
+
 @Component
 @ConfigurationProperties(prefix = "sonar")
 public class SonarProperties {
@@ -21,8 +25,8 @@ public class SonarProperties {
         this.token = token;
     }
 
-    public String[] getCodes() {
-        return codes;
+    public TreeSet<String> getCodes() {
+        return new TreeSet<>(Arrays.asList(codes));
     }
 
     public void setCodes(String[] codes) {
