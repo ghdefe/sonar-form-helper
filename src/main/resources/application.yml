@@ -4,7 +4,7 @@ jenkins:
   token: 1178b9a119547892acc981e7246e8360f3
 
 sonar:
-  host: localhost:9000
+  host: chunmiaoz-nb1:9000
   token: Basic YzM5MzgxNGIyMjRlYzFkNGU5ZDAzMTdjYjNkMGFlODg0NzljZDgzMzo=
   codes:
     - squid:S2259
@@ -18,3 +18,5 @@ sonar:
 
 scanner:
   dir: D:\\scanner
+
+debug: true

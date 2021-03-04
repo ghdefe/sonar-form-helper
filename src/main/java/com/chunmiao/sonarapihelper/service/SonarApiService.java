@@ -70,16 +70,16 @@ public class SonarApiService {
     public void getAllProjectIssuesResult() {
         final List<String> urls = getAllUrl(scannerDir);
         final HashMap<String, Integer> result = getResult(urls);
-        writeResultToCSV(result, new File(resultDir, "result.csv"), "", "");
+        writeResultToCSV(result, new File(resultDir, "Result.csv"), "", "");
     }
 
     /**
      * 总览存在codes中的bug数
      */
-    public void getAllProjectIssuesResult(HashSet<String> codeSet) {
+    public void getAllProjectIssuesResult(Set<String> codeSet) {
         final List<String> urls = getAllUrl(scannerDir);
         final HashMap<String, Integer> result = getResult(urls, codeSet);
-        writeResultToCSV(result, new File(resultDir, "result-in-codes.csv"), "", "");
+        writeResultToCSV(result, new File(resultDir, "Result-in-codes.csv"), "", "");
     }
 
     /**
@@ -95,7 +95,7 @@ public class SonarApiService {
     /**
      * 统计各公司存在codes中的bug数
      */
-    public void getCompanyIssuesResult(HashSet<String> codeSet) {
+    public void getCompanyIssuesResult(Set<String> codeSet) {
         final File fatherPath = new File(scannerDir);
         for (File company : Objects.requireNonNull(fatherPath.listFiles())) {
             getCompanyIssues(company, codeSet);
@@ -117,7 +117,7 @@ public class SonarApiService {
     /**
      * 统计各项目存在codes中的bug数
      */
-    public void getProjectIssuesResult(HashSet<String> codeSet) {
+    public void getProjectIssuesResult(Set<String> codeSet) {
         final File fatherPath = new File(scannerDir);
         for (File company : Objects.requireNonNull(fatherPath.listFiles())) {
             for (File project : Objects.requireNonNull(company.listFiles())) {
@@ -133,7 +133,7 @@ public class SonarApiService {
         writeResultToCSV(result, new File(resultDir, "Company.csv"), company.getName(), "");
     }
 
-    public void getCompanyIssues(File company, HashSet<String> bugCodeSet) {
+    public void getCompanyIssues(File company, Set<String> bugCodeSet) {
         final List<String> urls = getCompanyUrl(company);
         final HashMap<String,Integer> result = getResult(urls, bugCodeSet);
         writeResultToCSV(result, new File(resultDir, "Company-in-codes.csv"), company.getName(), "");
@@ -146,7 +146,7 @@ public class SonarApiService {
         writeResultToCSV(resHashMap, new File(resultDir, "Project.csv"), project.getParentFile().getName(), project.getName());
     }
 
-    public void getProjectIssues(File project, HashSet<String> bugCodeSet) {
+    public void getProjectIssues(File project, Set<String> bugCodeSet) {
         final String url = getProjectIssuesUrl(project);
         HashMap<String, Integer> resHashMap = new HashMap<>();
         fromUrlGetResult(url, resHashMap, bugCodeSet);
@@ -200,7 +200,7 @@ public class SonarApiService {
      * @param bugCodes
      * @return Map<bug代码, 次数>
      */
-    private HashMap<String,Integer> getResult(List<String> urls, HashSet<String> bugCodes) {
+    private HashMap<String,Integer> getResult(List<String> urls, Set<String> bugCodes) {
         HashMap<String, Integer> resHashMap = new HashMap<>();
         for (String url : urls) {
             fromUrlGetResult(url, resHashMap, bugCodes);
@@ -281,7 +281,7 @@ public class SonarApiService {
         }
     }
 
-    private void fromUrlGetResult(String url, HashMap<String, Integer> resultHashMap, HashSet<String> codeSet) {
+    private void fromUrlGetResult(String url, HashMap<String, Integer> resultHashMap, Set<String> codeSet) {
         Request request = new Request.Builder()
                 .header("Authorization", SONAR_TOKEN)
                 .url(url)
@@ -362,7 +362,9 @@ public class SonarApiService {
         try {
             Response response = okHttpClient.newCall(request).execute();
             assert response.body() != null;
-            jsonObject = JSONObject.parseObject(response.body().toString());
+            String string = response.body().string();
+            log.error(string);
+            jsonObject = JSONObject.parseObject(string);
 
         } catch (IOException e) {
             e.printStackTrace();
