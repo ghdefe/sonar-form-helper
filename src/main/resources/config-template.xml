@@ -1,0 +1,54 @@
+<project>
+    <actions/>
+    <description/>
+    <keepDependencies>false</keepDependencies>
+    <properties/>
+    <scm class="hudson.plugins.git.GitSCM" plugin="git@4.6.0">
+        <configVersion>2</configVersion>
+        <userRemoteConfigs>
+            <hudson.plugins.git.UserRemoteConfig>
+                <url>http://172.16.0.62:11182/root/test.git</url>
+                <credentialsId>fc4c654a-3f56-4e88-b735-3d5dc8ba7bce</credentialsId>
+            </hudson.plugins.git.UserRemoteConfig>
+        </userRemoteConfigs>
+        <branches>
+            <hudson.plugins.git.BranchSpec>
+                <name>*/master</name>
+            </hudson.plugins.git.BranchSpec>
+            <hudson.plugins.git.BranchSpec>
+                <name>*/main</name>
+            </hudson.plugins.git.BranchSpec>
+        </branches>
+        <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
+        <submoduleCfg class="empty-list"/>
+        <extensions/>
+    </scm>
+    <canRoam>true</canRoam>
+    <disabled>false</disabled>
+    <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+    <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+    <triggers/>
+    <concurrentBuild>false</concurrentBuild>
+    <builders>
+        <hudson.plugins.sonar.SonarRunnerBuilder plugin="sonar@2.13">
+            <project/>
+            <properties>
+sonar.projectKey=test
+sonar.projectName=test
+# Path is relative to the sonar-project.properties file. Defaults to .
+#sonar.sources=.
+# Encoding of the source code. Default is default system encoding
+#sonar.sourceEncoding=UTF-8
+sonar.exclusions=**/doc/**
+sonar.language=java
+sonar.java.binaries=./
+            </properties>
+            <javaOpts/>
+            <additionalArguments/>
+            <jdk>jdk1.8</jdk>
+            <task/>
+        </hudson.plugins.sonar.SonarRunnerBuilder>
+    </builders>
+    <publishers/>
+    <buildWrappers/>
+</project>
