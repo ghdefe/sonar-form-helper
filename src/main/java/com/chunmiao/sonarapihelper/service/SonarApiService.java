@@ -11,11 +11,11 @@ import okhttp3.Request;
 import okhttp3.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
 import java.io.*;
-import java.net.http.HttpHeaders;
 import java.nio.charset.Charset;
 import java.util.*;
 
@@ -23,29 +23,24 @@ import java.util.*;
 @Service
 public class SonarApiService {
 
-    public static final String SONAR_TOKEN = "Basic YzM5MzgxNGIyMjRlYzFkNGU5ZDAzMTdjYjNkMGFlODg0NzljZDgzMzo=";
-    final RestTemplate restTemplate = new RestTemplate();
+    @Value("${scanner.dir}")
+    private String scannerDir;
+
+    @Value("${sonar.token}")
+    public String SONAR_TOKEN;
+
+    @Autowired
+    private SonarProperties sonarProperties;
+
     private final Logger log = LoggerFactory.getLogger(SonarApiService.class);
 
-    private OkHttpClient okHttpClient = new OkHttpClient();
+    private final OkHttpClient okHttpClient = new OkHttpClient();
 
     private final String resultDir = System.getProperty("user.dir") + "/result/";
 
-    private final String[] codes = {
-            "squid:S2259",
-            "squid:S3986",
-            "squid:S2111",
-            "squid:S4973",
-            "squid:S2583",
-            "squid:S2119",
-            "squid:S2095",
-            "pmd:OverrideBothEqualsAndHashcode"
-    };
-
-    public final HashSet<String> CODESET = new HashSet<>(Arrays.asList(codes));
 
 
-    public void generatePropertiesFile(File fatherPath, File propertiesTemplate){
+    public void generatePropertiesFile(File fatherPath, File propertiesTemplate) {
         int i = 0;
         final File[] dirs = fatherPath.listFiles();
         for (File dir : dirs) {
@@ -73,25 +68,25 @@ public class SonarApiService {
      * 总览
      */
     public void getAllProjectIssuesResult() {
-        final List<String> urls = getAllUrl("D:\\scanner");
+        final List<String> urls = getAllUrl(scannerDir);
         final List<Map.Entry<String, Integer>> result = getResult(urls);
-        writeResultToCSV(result, new File(resultDir, "result.csv"),"","");
+        writeResultToCSV(result, new File(resultDir, "result.csv"), "", "");
     }
 
     /**
      * 总览存在codes中的bug数
      */
     public void getAllProjectIssuesResult(HashSet<String> codeSet) {
-        final List<String> urls = getAllUrl("D:\\scanner");
-        final List<Map.Entry<String, Integer>> result = getResult(urls,codeSet);
-        writeResultToCSV(result, new File(resultDir, "result-in-codes.csv"),"","");
+        final List<String> urls = getAllUrl(scannerDir);
+        final List<Map.Entry<String, Integer>> result = getResult(urls, codeSet);
+        writeResultToCSV(result, new File(resultDir, "result-in-codes.csv"), "", "");
     }
 
     /**
      * 统计公司bug
      */
     public void getCompanyIssuesResult() {
-        final File fatherPath = new File("D:\\scanner");
+        final File fatherPath = new File(scannerDir);
         for (File company : Objects.requireNonNull(fatherPath.listFiles())) {
             getCompanyIssues(company);
         }
@@ -101,9 +96,9 @@ public class SonarApiService {
      * 统计各公司存在codes中的bug数
      */
     public void getCompanyIssuesResult(HashSet<String> codeSet) {
-        final File fatherPath = new File("D:\\scanner");
+        final File fatherPath = new File(scannerDir);
         for (File company : Objects.requireNonNull(fatherPath.listFiles())) {
-            getCompanyIssues(company,codeSet);
+            getCompanyIssues(company, codeSet);
         }
     }
 
@@ -111,7 +106,7 @@ public class SonarApiService {
      * 统计项目bug
      */
     public void getProjectIssuesResult() {
-        final File fatherPath = new File("D:\\scanner");
+        final File fatherPath = new File(scannerDir);
         for (File company : Objects.requireNonNull(fatherPath.listFiles())) {
             for (File project : Objects.requireNonNull(company.listFiles())) {
                 getProjectIssues(project);
@@ -123,7 +118,7 @@ public class SonarApiService {
      * 统计各项目存在codes中的bug数
      */
     public void getProjectIssuesResult(HashSet<String> codeSet) {
-        final File fatherPath = new File("D:\\scanner");
+        final File fatherPath = new File(scannerDir);
         for (File company : Objects.requireNonNull(fatherPath.listFiles())) {
             for (File project : Objects.requireNonNull(company.listFiles())) {
                 getProjectIssues(project, codeSet);
@@ -135,13 +130,13 @@ public class SonarApiService {
     public void getCompanyIssues(File company) {
         final List<String> urls = getCompanyUrl(company);
         final List<Map.Entry<String, Integer>> result = getResult(urls);
-        writeResultToCSV(result, new File(resultDir, "Company.csv"),company.getName(),"");
+        writeResultToCSV(result, new File(resultDir, "Company.csv"), company.getName(), "");
     }
 
     public void getCompanyIssues(File company, HashSet<String> bugCodeSet) {
         final List<String> urls = getCompanyUrl(company);
-        final List<Map.Entry<String, Integer>> result = getResult(urls,bugCodeSet);
-        writeResultToCSV(result, new File(resultDir, "Company-in-codes.csv"),company.getName(),"");
+        final List<Map.Entry<String, Integer>> result = getResult(urls, bugCodeSet);
+        writeResultToCSV(result, new File(resultDir, "Company-in-codes.csv"), company.getName(), "");
     }
 
     public void getProjectIssues(File project) {
@@ -149,7 +144,7 @@ public class SonarApiService {
         HashMap<String, Integer> resHashMap = new HashMap<>();
         fromUrlGetResult(url, resHashMap);
         final List<Map.Entry<String, Integer>> result = sortHashMap(resHashMap);
-        writeResultToCSV(result, new File(resultDir, "Project.csv"),project.getParentFile().getName(),project.getName());
+        writeResultToCSV(result, new File(resultDir, "Project.csv"), project.getParentFile().getName(), project.getName());
     }
 
     public void getProjectIssues(File project, HashSet<String> bugCodeSet) {
@@ -157,11 +152,11 @@ public class SonarApiService {
         HashMap<String, Integer> resHashMap = new HashMap<>();
         fromUrlGetResult(url, resHashMap, bugCodeSet);
         final List<Map.Entry<String, Integer>> result = sortHashMap(resHashMap);
-        writeResultToCSV(result, new File(resultDir, "Project-in-codes.csv"),project.getParentFile().getName(),project.getName());
+        writeResultToCSV(result, new File(resultDir, "Project-in-codes.csv"), project.getParentFile().getName(), project.getName());
     }
 
     private void writeResultToCSV(List<Map.Entry<String, Integer>> result, File csvFile, String company, String project) {
-        final HashMap<String, String> codeOfIssue = getCodeOfIssue(ISSUETYPE.BUG);
+        final HashMap<String, String> codeOfIssue = getCodeOfIssue();
         if (!csvFile.getParentFile().exists()) {
             csvFile.getParentFile().mkdirs();
         }
@@ -254,7 +249,7 @@ public class SonarApiService {
      */
     private String getProjectIssuesUrl(File project) {
         String projectName = project.getParentFile().getName() + "-" + project.getName();
-        return "http://localhost:9000/api/issues/search?componentKeys="
+        return "http://" + sonarProperties.getHost() + "/api/issues/search?componentKeys="
                 + projectName
                 + "&resolved=false&types=BUG&ps=500";
     }
@@ -267,7 +262,7 @@ public class SonarApiService {
                 .get()
                 .build();
         Call call = okHttpClient.newCall(request);
-        try (Response execute = call.execute();){
+        try (Response execute = call.execute();) {
             String resp = execute.body().string();
             JSONObject jsonObject = JSON.parseObject(resp);
             JSONArray issues = jsonObject.getJSONArray("issues");
@@ -295,7 +290,7 @@ public class SonarApiService {
                 .get()
                 .build();
         Call call = okHttpClient.newCall(request);
-        try (Response response = call.execute()){
+        try (Response response = call.execute()) {
             String resp = response.body().string();
             JSONObject jsonObject = JSON.parseObject(resp);
             JSONArray issues = jsonObject.getJSONArray("issues");
@@ -327,19 +322,22 @@ public class SonarApiService {
         return entries;
     }
 
-    private HashMap<String, String> getCodeOfIssue(ISSUETYPE issuetype) {
-
-        String url = "http://localhost:9000/api/rules/search?ps=500&languages=java&types=" + issuetype.name();
-        JSONObject jsonObject = restTemplate.getForObject(url, JSONObject.class);
-        final JSONArray rules = jsonObject.getJSONArray("rules");
-        final Iterator<Object> iterator = rules.iterator();
+    private HashMap<String, String> getCodeOfIssue() {
+        String url = "http://" + sonarProperties.getHost() + "/api/rules/search?ps=500&languages=java&types=" + ISSUETYPE.BUG.name();
+        final Request request = new Request.Builder()
+                .url(url)
+                .get()
+                .build();
         final HashMap<String, String> resHashMap = new HashMap<>();
-        while (iterator.hasNext()) {
-            final JSONObject next = (JSONObject) iterator.next();
-            final String key = next.getString("key");
-            final String name = next.getString("name");
-            resHashMap.put(key, name);
-        }
+        getUrlToJson(request).ifPresent(jsonObject -> {
+            final JSONArray rules = jsonObject.getJSONArray("rules");
+            for (Object rule : rules) {
+                final JSONObject next = (JSONObject) rule;
+                final String key = next.getString("key");
+                final String name = next.getString("name");
+                resHashMap.put(key, name);
+            }
+        });
         return resHashMap;
     }
 
@@ -358,5 +356,21 @@ public class SonarApiService {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+
+    public Optional<JSONObject> getUrlToJson(Request request) {
+        JSONObject jsonObject = null;
+        try {
+            Response response = okHttpClient.newCall(request).execute();
+            assert response.body() != null;
+            jsonObject = JSONObject.parseObject(response.body().toString());
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            log.error(e.getMessage());
+        }
+        return Optional.ofNullable(jsonObject);
+
     }
 }

@@ -1,6 +1,8 @@
 package com.chunmiao.sonarapihelper;
 
+import com.chunmiao.sonarapihelper.service.JenkinsJobService;
 import com.chunmiao.sonarapihelper.service.SonarApiService;
+import com.chunmiao.sonarapihelper.service.SonarProperties;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -10,23 +12,15 @@ import java.util.Arrays;
 import java.util.HashSet;
 
 @SpringBootTest
-public class sonarhelperTest {
+public class SonarHelperTest {
 
     @Autowired
     private SonarApiService sonarApiService;
 
-    private final String[] codes = {
-            "squid:S2259",
-            "squid:S3986",
-            "squid:S2111",
-            "squid:S4973",
-            "squid:S2583",
-            "squid:S2119",
-            "squid:S2095",
-            "pmd:OverrideBothEqualsAndHashcode"
-    };
+    @Autowired
+    private SonarProperties sonarProperties;
 
-    public final HashSet<String> CODESET = new HashSet<>(Arrays.asList(codes));
+
 
     @Test
     public void generateProperties(){
@@ -37,10 +31,15 @@ public class sonarhelperTest {
 
     @Test
     public void getAllInCodes(){
+        HashSet<String> CODESET = new HashSet<>(Arrays.asList(sonarProperties.getCodes()));
+
         sonarApiService.getAllProjectIssuesResult(CODESET);
         sonarApiService.getCompanyIssuesResult(CODESET);
         sonarApiService.getProjectIssuesResult(CODESET);
     }
+
+
+
 
 
 
