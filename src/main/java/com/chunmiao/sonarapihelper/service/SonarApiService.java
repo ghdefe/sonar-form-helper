@@ -3,6 +3,7 @@ package com.chunmiao.sonarapihelper.service;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.JSONPObject;
 import com.chunmiao.sonarapihelper.service.finalEnum.ISSUETYPE;
 import com.opencsv.CSVWriter;
 import com.sun.source.util.Trees;
@@ -61,6 +62,63 @@ public class SonarApiService {
             }
         }
 
+    }
+
+    public String[] getAllProjectInSonar() {
+        String[] res = null;
+        String url = "http://" + sonarProperties.getHost() + "/api/components/search?qualifiers=TRK&ps=500";
+        Request request = new Request.Builder()
+                .header("Authorization", SONAR_TOKEN)
+                .url(url)
+                .get()
+                .build();
+        try {
+            Response response = okHttpClient.newCall(request).execute();
+            log.info("获取Sonar中所有项目名: " + response.code());
+            if (response.code() == 200) {
+                JSONObject jsonObject = JSONObject.parseObject(response.body().string());
+                JSONArray components = jsonObject.getJSONArray("components");
+                TreeSet<String> resSet = new TreeSet<>();
+                components.listIterator().forEachRemaining(o -> {
+                    JSONObject o1 = (JSONObject) o;
+                    String key = o1.getString("key");
+                    resSet.add(key);
+                });
+                res = resSet.toArray(new String[]{});
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
+        return res;
+    }
+
+    /**
+     * 获取项目扫描代码行数
+     */
+    public String getProjectCodeLine(String project) {
+        String url = "http://" + sonarProperties.getHost() + "/api/measures/component?additionalFields=periods&component=" + project + "&metricKeys=ncloc";
+        Request request = new Request.Builder()
+                .header("Authorization", SONAR_TOKEN)
+                .url(url)
+                .get()
+                .build();
+
+        try {
+            Response response = okHttpClient.newCall(request).execute();
+            if (response.code() == 200){
+                JSONObject jsonObject = JSONObject.parseObject(response.body().string());
+                String res = jsonObject.getJSONObject("component").getJSONArray("measures").getJSONObject(0).getString("value");
+                return res;
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return null;
     }
 
 
@@ -129,13 +187,13 @@ public class SonarApiService {
 
     public void getCompanyIssues(File company) {
         final List<String> urls = getCompanyUrl(company);
-        final HashMap<String,Integer> result = getResult(urls);
+        final HashMap<String, Integer> result = getResult(urls);
         writeResultToCSV(result, new File(resultDir, "Company.csv"), company.getName(), "");
     }
 
     public void getCompanyIssues(File company, HashSet<String> bugCodeSet) {
         final List<String> urls = getCompanyUrl(company);
-        final HashMap<String,Integer> result = getResult(urls, bugCodeSet);
+        final HashMap<String, Integer> result = getResult(urls, bugCodeSet);
         writeResultToCSV(result, new File(resultDir, "Company-in-codes.csv"), company.getName(), "");
     }
 
@@ -153,7 +211,7 @@ public class SonarApiService {
         writeResultToCSV(resHashMap, new File(resultDir, "Project-in-codes.csv"), project.getParentFile().getName(), project.getName());
     }
 
-    private void writeResultToCSV(HashMap<String,Integer> result, File csvFile, String company, String project) {
+    private void writeResultToCSV(HashMap<String, Integer> result, File csvFile, String company, String project) {
         final HashMap<String, String> codeOfIssue = getCodeOfIssue();
         if (!csvFile.getParentFile().exists()) {
             csvFile.getParentFile().mkdirs();
@@ -200,7 +258,7 @@ public class SonarApiService {
      * @param bugCodes
      * @return Map<bug代码, 次数>
      */
-    private HashMap<String,Integer> getResult(List<String> urls, HashSet<String> bugCodes) {
+    private HashMap<String, Integer> getResult(List<String> urls, HashSet<String> bugCodes) {
         HashMap<String, Integer> resHashMap = new HashMap<>();
         for (String url : urls) {
             fromUrlGetResult(url, resHashMap, bugCodes);

@@ -8,8 +8,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.TreeSet;
 
 @SpringBootTest
 public class SonarHelperTest {
@@ -31,11 +33,24 @@ public class SonarHelperTest {
 
     @Test
     public void getAllInCodes(){
-        HashSet<String> CODESET = new HashSet<>(Arrays.asList(sonarProperties.getCodes()));
+        TreeSet<String> CODESET = sonarProperties.getCodes();
 
-        sonarApiService.getAllProjectIssuesResult(CODESET);
-        sonarApiService.getCompanyIssuesResult(CODESET);
-        sonarApiService.getProjectIssuesResult(CODESET);
+//        sonarApiService.getAllProjectIssuesResult(CODESET);
+//        sonarApiService.getCompanyIssuesResult(CODESET);
+//        sonarApiService.getProjectIssuesResult(CODESET);
+    }
+
+    @Test
+    public void getAllProjectInSonar() throws IOException {
+        sonarApiService.getAllProjectInSonar();
+    }
+
+    @Test
+    public void getProjectCodeLineTest(){
+        String[] projects = sonarApiService.getAllProjectInSonar();
+        for (String project : projects) {
+            System.out.println(project + ": " + sonarApiService.getProjectCodeLine(project));
+        }
     }
 
 
