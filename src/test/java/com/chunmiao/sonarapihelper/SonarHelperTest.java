@@ -63,6 +63,14 @@ public class SonarHelperTest {
     }
 
 
+    /**
+     * 获取第二种模板统计报告
+     */
+    @Test void getCountRepoSecond(){
+        sonarApiService.getSecondCountRepo();
+    }
+
+
 
 
 

@@ -1,5 +1,5 @@
 jenkins:
-  host: 222
+  host: localhost:8080
   username: admin
   token: 1178b9a119547892acc981e7246e8360f3
 

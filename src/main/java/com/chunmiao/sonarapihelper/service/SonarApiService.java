@@ -155,9 +155,6 @@ public class SonarApiService {
      * 生成第二种统计报告表
      */
     public void getSecondCountRepo() {
-        String[] projects = new String[]{
-                "bs-be-budget-config"
-        };
         String[] bugCodes = new String[]{
                 "squid:S2259",
                 "squid:S3986",
@@ -168,20 +165,29 @@ public class SonarApiService {
                 "squid:S2095",
                 "pmd:OverrideBothEqualsAndHashcode"
         };
-        File csvFile = new File(System.getProperty("user.dir") + "result/", "result.csv");
+        String[] projects = getAllProjectInSonar();
+        File csvFile = new File(System.getProperty("user.dir") + "/result/", "result.csv");
         try (
                 final FileWriter fileWriter = new FileWriter(csvFile, Charset.defaultCharset(), true);
                 final CSVWriter csvWriter = new CSVWriter(fileWriter, CSVWriter.DEFAULT_SEPARATOR, CSVWriter.NO_QUOTE_CHARACTER, CSVWriter.NO_ESCAPE_CHARACTER, CSVWriter.DEFAULT_LINE_END);
         ) {
-
-
             for (String project : projects) {
-                String url = getProjectIssuesUrl(project);
-                HashMap<String, Integer> resMap = new HashMap<>();
-                fromUrlGetResult(url, resMap);
-
-                csvWriter.writeNext(new String[]{"", project, });
-
+                String codeLine = getProjectCodeLine(project);
+                HashMap<String, Integer> resMap = getProjectIssuesCount(project);
+                String[] next = {
+                        project.substring(0, 2),
+                        project.substring(3),
+                        codeLine,
+                        String.valueOf(resMap.getOrDefault(bugCodes[0], 0)),
+                        String.valueOf(resMap.getOrDefault(bugCodes[1], 0)),
+                        String.valueOf(resMap.getOrDefault(bugCodes[2], 0)),
+                        String.valueOf(resMap.getOrDefault(bugCodes[3], 0)),
+                        String.valueOf(resMap.getOrDefault(bugCodes[4], 0)),
+                        String.valueOf(resMap.getOrDefault(bugCodes[5], 0)),
+                        String.valueOf(resMap.getOrDefault(bugCodes[6], 0)),
+                        String.valueOf(resMap.getOrDefault(bugCodes[7], 0))
+                };
+                csvWriter.writeNext(next);
             }
 
         } catch (IOException e) {
@@ -498,9 +504,7 @@ public class SonarApiService {
             Response response = okHttpClient.newCall(request).execute();
             assert response.body() != null;
             String string = response.body().string();
-            log.error(string);
             jsonObject = JSONObject.parseObject(string);
-            jsonObject = JSONObject.parseObject(response.body().string());
 
         } catch (IOException e) {
             e.printStackTrace();
