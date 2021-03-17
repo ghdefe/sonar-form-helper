@@ -3,6 +3,7 @@ package com.chunmiao.sonarapihelper.service;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.JSONPObject;
 import com.chunmiao.sonarapihelper.service.finalEnum.ISSUETYPE;
 import com.opencsv.CSVWriter;
 import com.sun.source.util.Trees;
@@ -64,6 +65,93 @@ public class SonarApiService {
     }
 
     /**
+     * 获取Sonar中所有项目名称
+     *
+     * @return
+     */
+    public String[] getAllProjectInSonar() {
+        String[] res = null;
+        String url = "http://" + sonarProperties.getHost() + "/api/components/search?qualifiers=TRK&ps=500";
+        Request request = new Request.Builder()
+                .header("Authorization", SONAR_TOKEN)
+                .url(url)
+                .get()
+                .build();
+        try {
+            Response response = okHttpClient.newCall(request).execute();
+            log.info("获取Sonar中所有项目名: " + response.code());
+            if (response.code() == 200) {
+                JSONObject jsonObject = JSONObject.parseObject(response.body().string());
+                JSONArray components = jsonObject.getJSONArray("components");
+                TreeSet<String> resSet = new TreeSet<>();
+                components.listIterator().forEachRemaining(o -> {
+                    JSONObject o1 = (JSONObject) o;
+                    String key = o1.getString("key");
+                    resSet.add(key);
+                });
+                res = resSet.toArray(new String[]{});
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
+        return res;
+    }
+
+    /**
+     * 获取项目扫描代码行数
+     */
+    public String getProjectCodeLine(String project) {
+        String url = "http://" + sonarProperties.getHost() + "/api/measures/component?additionalFields=periods&component=" + project + "&metricKeys=ncloc";
+        Request request = new Request.Builder()
+                .header("Authorization", SONAR_TOKEN)
+                .url(url)
+                .get()
+                .build();
+
+        try {
+            Response response = okHttpClient.newCall(request).execute();
+            if (response.code() == 200) {
+                JSONObject jsonObject = JSONObject.parseObject(response.body().string());
+                String res = jsonObject.getJSONObject("component").getJSONArray("measures").getJSONObject(0).getString("value");
+                return res;
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+
+    public HashMap<String, Integer> getProjectIssuesCount(String project) {
+        String url = "http://" + sonarProperties.getHost() + "/api/issues/search?componentKeys=" + project + "&facets=rules&languages=java&ps=500";
+        Request request = new Request.Builder()
+                .header("Authorization", SONAR_TOKEN)
+                .url(url)
+                .get()
+                .build();
+        HashMap<String, Integer> resMap = new HashMap<>();
+        getUrlToJson(request).ifPresentOrElse(jsonObject -> {
+            jsonObject.getJSONArray("facets").getJSONObject(0)
+                    .getJSONArray("values")
+                    .iterator().forEachRemaining(o -> {
+                JSONObject o1 = (JSONObject) o;
+                String val = o1.getString("val"); // bug代码
+                int count = o1.getInteger("count"); // bug数量
+                resMap.put(val,count);
+            });
+        },() -> {
+
+        });
+
+        return resMap;
+    }
+
+    /**
      * 生成第二种统计报告表
      */
     public void getSecondCountRepo() {
@@ -91,7 +179,7 @@ public class SonarApiService {
                 String url = getProjectIssuesUrl(project);
                 HashMap<String, Integer> resMap = new HashMap<>();
                 fromUrlGetResult(url, resMap);
-                
+
                 csvWriter.writeNext(new String[]{"", project, });
 
             }
@@ -412,6 +500,7 @@ public class SonarApiService {
             String string = response.body().string();
             log.error(string);
             jsonObject = JSONObject.parseObject(string);
+            jsonObject = JSONObject.parseObject(response.body().string());
 
         } catch (IOException e) {
             e.printStackTrace();

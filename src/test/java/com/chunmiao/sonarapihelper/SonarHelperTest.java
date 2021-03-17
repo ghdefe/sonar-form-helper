@@ -8,7 +8,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.TreeSet;
 
@@ -34,13 +36,30 @@ public class SonarHelperTest {
     public void getAllInCodes(){
         TreeSet<String> CODESET = sonarProperties.getCodes();
 
-//        // 获取三种报告
 //        sonarApiService.getAllProjectIssuesResult(CODESET);
 //        sonarApiService.getCompanyIssuesResult(CODESET);
 //        sonarApiService.getProjectIssuesResult(CODESET);
+    }
 
-        // 获取第二种模板报告
-        sonarApiService.getSecondCountRepo();
+    @Test
+    public void getAllProjectInSonar() throws IOException {
+        sonarApiService.getAllProjectInSonar();
+    }
+
+    @Test
+    public void getProjectCodeLineTest(){
+        String[] projects = sonarApiService.getAllProjectInSonar();
+        for (String project : projects) {
+            System.out.println(project + ": " + sonarApiService.getProjectCodeLine(project));
+        }
+    }
+
+    @Test void getProjectIssueCountTest(){
+        String[] projects = sonarApiService.getAllProjectInSonar();
+        for (String project : projects) {
+            HashMap<String, Integer> resMap = sonarApiService.getProjectIssuesCount(project);
+            System.out.println(resMap);
+        }
     }
 
 
