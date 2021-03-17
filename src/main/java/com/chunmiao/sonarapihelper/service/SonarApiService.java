@@ -64,6 +64,10 @@ public class SonarApiService {
 
     }
 
+    /**
+     * 获取Sonar中所有项目名称
+     * @return
+     */
     public String[] getAllProjectInSonar() {
         String[] res = null;
         String url = "http://" + sonarProperties.getHost() + "/api/components/search?qualifiers=TRK&ps=500";
