@@ -66,6 +66,7 @@ public class SonarApiService {
 
     /**
      * 获取Sonar中所有项目名称
+     *
      * @return
      */
     public String[] getAllProjectInSonar() {
@@ -112,7 +113,7 @@ public class SonarApiService {
 
         try {
             Response response = okHttpClient.newCall(request).execute();
-            if (response.code() == 200){
+            if (response.code() == 200) {
                 JSONObject jsonObject = JSONObject.parseObject(response.body().string());
                 String res = jsonObject.getJSONObject("component").getJSONArray("measures").getJSONObject(0).getString("value");
                 return res;
@@ -123,6 +124,31 @@ public class SonarApiService {
         }
 
         return null;
+    }
+
+
+    public HashMap<String, Integer> getProjectIssuesCount(String project) {
+        String url = "http://" + sonarProperties.getHost() + "/api/issues/search?componentKeys=" + project + "&facets=rules&languages=java&ps=500";
+        Request request = new Request.Builder()
+                .header("Authorization", SONAR_TOKEN)
+                .url(url)
+                .get()
+                .build();
+        HashMap<String, Integer> resMap = new HashMap<>();
+        getUrlToJson(request).ifPresentOrElse(jsonObject -> {
+            jsonObject.getJSONArray("facets").getJSONObject(0)
+                    .getJSONArray("values")
+                    .iterator().forEachRemaining(o -> {
+                JSONObject o1 = (JSONObject) o;
+                String val = o1.getString("val"); // bug代码
+                int count = o1.getInteger("count"); // bug数量
+                resMap.put(val,count);
+            });
+        },() -> {
+
+        });
+
+        return resMap;
     }
 
 
@@ -424,7 +450,7 @@ public class SonarApiService {
         try {
             Response response = okHttpClient.newCall(request).execute();
             assert response.body() != null;
-            jsonObject = JSONObject.parseObject(response.body().toString());
+            jsonObject = JSONObject.parseObject(response.body().string());
 
         } catch (IOException e) {
             e.printStackTrace();

@@ -10,6 +10,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.TreeSet;
 
@@ -50,6 +51,14 @@ public class SonarHelperTest {
         String[] projects = sonarApiService.getAllProjectInSonar();
         for (String project : projects) {
             System.out.println(project + ": " + sonarApiService.getProjectCodeLine(project));
+        }
+    }
+
+    @Test void getProjectIssueCountTest(){
+        String[] projects = sonarApiService.getAllProjectInSonar();
+        for (String project : projects) {
+            HashMap<String, Integer> resMap = sonarApiService.getProjectIssuesCount(project);
+            System.out.println(resMap);
         }
     }
 
