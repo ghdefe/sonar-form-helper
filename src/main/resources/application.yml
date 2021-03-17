@@ -1,11 +1,11 @@
 jenkins:
-  host: http://172.16.0.62:19011
+  host: 222
   username: admin
   token: 1178b9a119547892acc981e7246e8360f3
 
 sonar:
-  host: chunmiaoz-nb1:9000
-  token: Basic YzM5MzgxNGIyMjRlYzFkNGU5ZDAzMTdjYjNkMGFlODg0NzljZDgzMzo=
+  host: 172.16.0.41:11190
+  token: Basic YTYyNjEwN2M3MDQyZmNkMGYwMjk3ODBjZWM4N2U4MTQyZTUyYjMyOTo=
   codes:
     - squid:S2259
     - squid:S3986

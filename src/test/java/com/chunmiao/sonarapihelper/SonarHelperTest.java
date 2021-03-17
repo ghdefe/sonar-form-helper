@@ -34,10 +34,13 @@ public class SonarHelperTest {
     public void getAllInCodes(){
         TreeSet<String> CODESET = sonarProperties.getCodes();
 
+//        // 获取三种报告
+//        sonarApiService.getAllProjectIssuesResult(CODESET);
+//        sonarApiService.getCompanyIssuesResult(CODESET);
+//        sonarApiService.getProjectIssuesResult(CODESET);
 
-        sonarApiService.getAllProjectIssuesResult(CODESET);
-        sonarApiService.getCompanyIssuesResult(CODESET);
-        sonarApiService.getProjectIssuesResult(CODESET);
+        // 获取第二种模板报告
+        sonarApiService.getSecondCountRepo();
     }
 
 

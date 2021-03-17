@@ -63,6 +63,46 @@ public class SonarApiService {
 
     }
 
+    /**
+     * 生成第二种统计报告表
+     */
+    public void getSecondCountRepo() {
+        String[] projects = new String[]{
+                "bs-be-budget-config"
+        };
+        String[] bugCodes = new String[]{
+                "squid:S2259",
+                "squid:S3986",
+                "squid:S2111",
+                "squid:S4973",
+                "squid:S2583",
+                "squid:S2119",
+                "squid:S2095",
+                "pmd:OverrideBothEqualsAndHashcode"
+        };
+        File csvFile = new File(System.getProperty("user.dir") + "result/", "result.csv");
+        try (
+                final FileWriter fileWriter = new FileWriter(csvFile, Charset.defaultCharset(), true);
+                final CSVWriter csvWriter = new CSVWriter(fileWriter, CSVWriter.DEFAULT_SEPARATOR, CSVWriter.NO_QUOTE_CHARACTER, CSVWriter.NO_ESCAPE_CHARACTER, CSVWriter.DEFAULT_LINE_END);
+        ) {
+
+
+            for (String project : projects) {
+                String url = getProjectIssuesUrl(project);
+                HashMap<String, Integer> resMap = new HashMap<>();
+                fromUrlGetResult(url, resMap);
+                
+                csvWriter.writeNext(new String[]{"", project, });
+
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+
 
     /**
      * 总览
@@ -129,13 +169,13 @@ public class SonarApiService {
 
     public void getCompanyIssues(File company) {
         final List<String> urls = getCompanyUrl(company);
-        final HashMap<String,Integer> result = getResult(urls);
+        final HashMap<String, Integer> result = getResult(urls);
         writeResultToCSV(result, new File(resultDir, "Company.csv"), company.getName(), "");
     }
 
     public void getCompanyIssues(File company, Set<String> bugCodeSet) {
         final List<String> urls = getCompanyUrl(company);
-        final HashMap<String,Integer> result = getResult(urls, bugCodeSet);
+        final HashMap<String, Integer> result = getResult(urls, bugCodeSet);
         writeResultToCSV(result, new File(resultDir, "Company-in-codes.csv"), company.getName(), "");
     }
 
@@ -153,7 +193,7 @@ public class SonarApiService {
         writeResultToCSV(resHashMap, new File(resultDir, "Project-in-codes.csv"), project.getParentFile().getName(), project.getName());
     }
 
-    private void writeResultToCSV(HashMap<String,Integer> result, File csvFile, String company, String project) {
+    private void writeResultToCSV(HashMap<String, Integer> result, File csvFile, String company, String project) {
         final HashMap<String, String> codeOfIssue = getCodeOfIssue();
         if (!csvFile.getParentFile().exists()) {
             csvFile.getParentFile().mkdirs();
@@ -200,7 +240,7 @@ public class SonarApiService {
      * @param bugCodes
      * @return Map<bug代码, 次数>
      */
-    private HashMap<String,Integer> getResult(List<String> urls, Set<String> bugCodes) {
+    private HashMap<String, Integer> getResult(List<String> urls, Set<String> bugCodes) {
         HashMap<String, Integer> resHashMap = new HashMap<>();
         for (String url : urls) {
             fromUrlGetResult(url, resHashMap, bugCodes);
@@ -252,6 +292,12 @@ public class SonarApiService {
                 + "&resolved=false&types=BUG&ps=500";
     }
 
+    private String getProjectIssuesUrl(String project) {
+        return "http://" + sonarProperties.getHost() + "/api/issues/search?componentKeys="
+                + project
+                + "&resolved=false&types=BUG&ps=500";
+    }
+
 
     private void fromUrlGetResult(String url, HashMap<String, Integer> resultHashMap) {
         Request request = new Request.Builder()
@@ -283,8 +329,9 @@ public class SonarApiService {
 
     private void fromUrlGetResult(String url, HashMap<String, Integer> resultHashMap, Set<String> codeSet) {
         Request request = new Request.Builder()
-                .header("Authorization", SONAR_TOKEN)
-                .url(url)
+                .header("Authorization", SONAR_TOKEN.trim())
+//                .url(url)
+                .url("http://172.16.0.41:11190/api/issues/search?componentKeys=bs-be-basicinfo&resolved=false&types=BUG&ps=500")
                 .get()
                 .build();
         Call call = okHttpClient.newCall(request);
