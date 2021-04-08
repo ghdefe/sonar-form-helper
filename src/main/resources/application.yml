@@ -4,8 +4,8 @@ jenkins:
   token: 1178b9a119547892acc981e7246e8360f3
 
 sonar:
-  host: 172.16.0.41:11190
-  token: Basic YTYyNjEwN2M3MDQyZmNkMGYwMjk3ODBjZWM4N2U4MTQyZTUyYjMyOTo=
+  host: 172.16.0.62:11190
+  token: Basic YzEyZGIwNTNmYjEyZjIwZTE4YTQyYzVlMTYyODk1NDFlYmE5MzA4Yzo=
   codes:
     - squid:S2259
     - squid:S3986

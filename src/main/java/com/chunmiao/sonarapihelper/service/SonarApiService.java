@@ -135,16 +135,15 @@ public class SonarApiService {
                 .get()
                 .build();
         HashMap<String, Integer> resMap = new HashMap<>();
-        getUrlToJson(request).ifPresentOrElse(jsonObject -> {
-            jsonObject.getJSONArray("facets").getJSONObject(0)
-                    .getJSONArray("values")
-                    .iterator().forEachRemaining(o -> {
-                JSONObject o1 = (JSONObject) o;
-                String val = o1.getString("val"); // bug代码
-                int count = o1.getInteger("count"); // bug数量
-                resMap.put(val,count);
-            });
-        },() -> {
+        getUrlToJson(request).ifPresentOrElse(jsonObject ->
+                jsonObject.getJSONArray("facets").getJSONObject(0)
+                .getJSONArray("values")
+                .iterator().forEachRemaining(o -> {
+            JSONObject o1 = (JSONObject) o;
+            String val = o1.getString("val"); // bug代码
+            int count = o1.getInteger("count"); // bug数量
+            resMap.put(val,count);
+        }),() -> {
 
         });
 
